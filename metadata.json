@@ -1,0 +1,8 @@
+{
+  "name": "Smart OR Scheduler",
+  "description": "AI-Assisted Operating Room Scheduling & Optimization using Priority Queue, Job Sequencing, and Greedy Algorithms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
