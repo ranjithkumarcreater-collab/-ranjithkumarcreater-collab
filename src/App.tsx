@@ -26,6 +26,28 @@ import { RunDemoModal } from "./components/RunDemoModal";
 import { DecisionModal } from "./components/DecisionModal";
 import { Loader2 } from "lucide-react";
 
+const VALID_TABS = [
+  "dashboard",
+  "surgeries",
+  "rooms",
+  "schedule",
+  "decision_center",
+  "unscheduled",
+  "analytics",
+  "history",
+  "decision_logs",
+  "settings"
+];
+
+const getInitialTab = (): string => {
+  if (typeof window === "undefined") return "dashboard";
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+  if (VALID_TABS.includes(path)) {
+    return path;
+  }
+  return "dashboard";
+};
+
 export function App() {
   // Directly open the application with active profile (Admin by default, switchable via header)
   const [currentUser, setCurrentUser] = useState<User>({
@@ -35,7 +57,32 @@ export function App() {
     role: "Admin"
   });
 
-  const [currentTab, setCurrentTab] = useState<string>("dashboard");
+  const [currentTab, setCurrentTab] = useState<string>(getInitialTab);
+
+  // Sync route on mount and handle browser back/forward buttons
+  useEffect(() => {
+    const rawPath = window.location.pathname;
+    if (rawPath === "" || rawPath === "/" || rawPath === "/login") {
+      window.history.replaceState(null, "", "/dashboard");
+      setCurrentTab("dashboard");
+    }
+
+    const handlePopState = () => {
+      const tab = getInitialTab();
+      setCurrentTab(tab);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    setCurrentTab(tab);
+    const targetPath = `/${tab}`;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState(null, "", targetPath);
+    }
+  };
 
   // Core Data
   const [surgeries, setSurgeries] = useState<Surgery[]>([]);
@@ -247,7 +294,7 @@ export function App() {
       {/* Main Navbar */}
       <Navbar
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={handleTabChange}
         currentUser={currentUser}
         onRoleChange={handleRoleChange}
         onRunSchedulerClick={() => setIsDemoModalOpen(true)}
@@ -274,7 +321,7 @@ export function App() {
                 analytics={analytics}
                 decisionLogs={decisionLogs}
                 onRunDemo={() => setIsDemoModalOpen(true)}
-                onNavigateTab={setCurrentTab}
+                onNavigateTab={handleTabChange}
                 onSelectSurgery={(s) => setSelectedSurgeryForModal(s)}
                 currentUser={currentUser}
               />
@@ -295,6 +342,17 @@ export function App() {
                 decisionLogs={decisionLogs}
                 surgeries={surgeries}
                 onSelectSurgery={(s) => setSelectedSurgeryForModal(s)}
+                initialTab="steps"
+              />
+            )}
+
+            {currentTab === "decision_logs" && (
+              <DecisionCenterView
+                algorithmSteps={algorithmSteps}
+                decisionLogs={decisionLogs}
+                surgeries={surgeries}
+                onSelectSurgery={(s) => setSelectedSurgeryForModal(s)}
+                initialTab="logs"
               />
             )}
 
@@ -324,7 +382,7 @@ export function App() {
               <UnscheduledView
                 unscheduled={surgeries}
                 onSelectSurgery={(s) => setSelectedSurgeryForModal(s)}
-                onNavigateTab={setCurrentTab}
+                onNavigateTab={handleTabChange}
               />
             )}
 
@@ -358,7 +416,7 @@ export function App() {
       <RunDemoModal
         isOpen={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
-        onComplete={() => setCurrentTab("schedule")}
+        onComplete={() => handleTabChange("schedule")}
         executeSchedulerPromise={executeScheduler}
       />
 

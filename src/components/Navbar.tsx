@@ -14,7 +14,8 @@ import {
   LogOut,
   Hospital,
   Activity,
-  History
+  History,
+  FileText
 } from "lucide-react";
 import { User, UserRole } from "../types";
 
@@ -45,14 +46,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Activity },
-    { id: "schedule", label: "Timeline Schedule", icon: Calendar, badge: scheduledCount > 0 ? scheduledCount : undefined },
-    { id: "decision_center", label: "Algorithm Decisions", icon: Cpu },
     { id: "surgeries", label: "Surgeries", icon: Layers },
     { id: "rooms", label: "Operating Rooms", icon: Hospital },
-    { id: "unscheduled", label: "Unscheduled", icon: AlertTriangle, badge: unscheduledCount > 0 ? unscheduledCount : undefined, badgeColor: "bg-amber-500" },
-    { id: "analytics", label: "Analytics & Objective", icon: BarChart3 },
-    { id: "history", label: "Run History", icon: History },
-    { id: "settings", label: "Algorithm Weights", icon: Settings },
+    { id: "schedule", label: "Schedule", icon: Calendar, badge: scheduledCount > 0 ? scheduledCount : undefined },
+    { id: "decision_center", label: "Algorithm Decision Center", icon: Cpu },
+    { id: "unscheduled", label: "Unscheduled Surgeries", icon: AlertTriangle, badge: unscheduledCount > 0 ? unscheduledCount : undefined, badgeColor: "bg-amber-500" },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "history", label: "Scheduling Runs", icon: History },
+    { id: "decision_logs", label: "Decision Logs", icon: FileText },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (

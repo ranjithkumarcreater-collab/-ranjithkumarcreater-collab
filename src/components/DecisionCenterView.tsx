@@ -15,20 +15,26 @@ import {
   Activity
 } from "lucide-react";
 import { AlgorithmStep, DecisionLog, Surgery } from "../types";
+import { FileText } from "lucide-react";
 
 interface DecisionCenterViewProps {
   algorithmSteps: AlgorithmStep[];
   decisionLogs: DecisionLog[];
   surgeries: Surgery[];
   onSelectSurgery: (s: any) => void;
+  initialTab?: "steps" | "logs";
 }
 
 export const DecisionCenterView: React.FC<DecisionCenterViewProps> = ({
   algorithmSteps,
   decisionLogs,
   surgeries,
-  onSelectSurgery
+  onSelectSurgery,
+  initialTab = "steps"
 }) => {
+  const [viewMode, setViewMode] = useState<"steps" | "logs">(initialTab);
+  const [searchLogQuery, setSearchLogQuery] = useState("");
+
   // Find queue step
   const queueStep = algorithmSteps.find((s) => s.step_number === 1);
   const queueItems: any[] = queueStep?.data || [];
@@ -72,6 +78,137 @@ export const DecisionCenterView: React.FC<DecisionCenterViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Mode Switcher: Step Visualizer vs Complete Decision Logs */}
+      <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+        <button
+          onClick={() => setViewMode("steps")}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+            viewMode === "steps"
+              ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+              : "bg-slate-800/80 text-slate-300 hover:bg-slate-700"
+          }`}
+        >
+          <Cpu className="w-3.5 h-3.5" />
+          <span>Step-by-Step Algorithm Trace</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode("logs")}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+            viewMode === "logs"
+              ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+              : "bg-slate-800/80 text-slate-300 hover:bg-slate-700"
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Decision Logs Table ({decisionLogs.length})</span>
+        </button>
+      </div>
+
+      {viewMode === "logs" ? (
+        /* Complete Decision Logs Table */
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-200">
+                Operating Room Scheduling Decision Logs
+              </h3>
+              <p className="text-xs text-slate-400">
+                Detailed audit trail explaining why every surgery was scheduled or unscheduled.
+              </p>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search logs by surgery or reason..."
+                value={searchLogQuery}
+                onChange={(e) => setSearchLogQuery(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-full sm:w-64"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-800">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                <tr>
+                  <th className="py-3 px-4">Surgery & Patient</th>
+                  <th className="py-3 px-4">Decision</th>
+                  <th className="py-3 px-4">Room Assigned</th>
+                  <th className="py-3 px-4">Time Interval</th>
+                  <th className="py-3 px-4">Score</th>
+                  <th className="py-3 px-4">Reason / Narrative</th>
+                  <th className="py-3 px-4 text-right">Explainability</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {decisionLogs
+                  .filter((log) => {
+                    if (!searchLogQuery) return true;
+                    const q = searchLogQuery.toLowerCase();
+                    return (
+                      log.surgery_id.toLowerCase().includes(q) ||
+                      log.reason.toLowerCase().includes(q) ||
+                      (log.selected_room && log.selected_room.toLowerCase().includes(q))
+                    );
+                  })
+                  .map((log) => {
+                    const surg = surgeries.find((s) => s.id === log.surgery_id);
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-800/40 transition">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-100 font-mono text-cyan-300">{log.surgery_id}</div>
+                          <div className="text-[11px] text-slate-400">{surg?.patient_name || surg?.surgery_name || "Surgery Case"}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              log.decision === "SCHEDULED"
+                                ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
+                                : "bg-amber-950/60 border-amber-500/40 text-amber-300"
+                            }`}
+                          >
+                            {log.decision}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {log.selected_room ? (
+                            <span className="font-semibold text-slate-200">{log.selected_room}</span>
+                          ) : (
+                            <span className="text-slate-500 italic">None</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-300">
+                          {log.selected_start && log.selected_end
+                            ? `${log.selected_start} - ${log.selected_end}`
+                            : "—"}
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-cyan-400">
+                          {log.score ? log.score.toFixed(1) : "0.0"}
+                        </td>
+                        <td className="py-3 px-4 max-w-xs text-[11px] text-slate-300">
+                          {log.reason}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => onSelectSurgery(surg || { id: log.surgery_id })}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-700/50 text-cyan-300 text-[11px] font-medium transition"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Explain</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* Step-by-Step Visualization */
+        <div className="space-y-6">
 
       {/* STEP 1: Global Priority Queue Heap State */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
@@ -303,6 +440,8 @@ export const DecisionCenterView: React.FC<DecisionCenterViewProps> = ({
             <span className="font-bold text-cyan-300">Comprehensive Algorithm Narrative: </span>
             <span className="text-slate-300 leading-relaxed">{activeStep.reason}</span>
           </div>
+        </div>
+      )}
         </div>
       )}
     </div>
